@@ -1,0 +1,6 @@
+/build/
+/.vs/
+/.idea/
+/CMakeUserPresets.json
+/compile_commands.json
+/saves/
