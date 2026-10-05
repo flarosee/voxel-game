@@ -107,7 +107,9 @@ set(GLSLANG_TESTS OFF CACHE BOOL "" FORCE)
 set(GLSLANG_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(glslang
     GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
-    GIT_TAG fa9c3deb49e035a8abcabe366f26aac010f6cbfb) # 14.3.0
+    GIT_TAG fa9c3deb49e035a8abcabe366f26aac010f6cbfb # 14.3.0
+    PATCH_COMMAND ${CMAKE_COMMAND} -P
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/patch-glslang-cstdint.cmake")
 FetchContent_MakeAvailable(glm glslang)
 
 set(SHADER_HEADERS)
