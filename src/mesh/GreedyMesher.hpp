@@ -19,11 +19,11 @@ struct Vertex {
     bool operator==(const Vertex&) const = default;
 };
 struct Quad {
-    std::array<int,3> origin;
-    int axis;
-    int sign;
-    int width;
-    int height;
+    std::array<std::int32_t,3> origin;
+    std::int32_t axis;
+    std::int32_t sign;
+    std::int32_t width;
+    std::int32_t height;
     world::BlockId material;
     std::uint8_t sunlight = lighting::FullSunlight;
     std::uint8_t blockLight = 0;

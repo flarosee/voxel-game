@@ -5,8 +5,8 @@
 namespace voxel::mesh {
 struct DrawRange { std::uint32_t first=0, count=0; };
 struct TransparentNode {
-    int axis=0, plane=0;
-    int low=-1, high=-1;
+    std::int32_t axis=0, plane=0;
+    std::int32_t low=-1, high=-1;
     DrawRange faces;
 };
 // Axis-aligned BSP. Crossing greedy rectangles are split at integer planes;

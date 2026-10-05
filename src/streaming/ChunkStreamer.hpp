@@ -48,7 +48,7 @@ public:
     // Graceful shutdown flushes edits off the main thread, joins, then reports errors.
     void close();
 private:
-    enum class Kind { Edit, Regenerate, Export, Import };
+    enum class Kind : std::uint8_t { Edit, Regenerate, Export, Import };
     struct Command { Kind kind; world::BlockCoord block{}; world::ChunkCoord chunk{}; world::BlockId expected=0, desired=0; };
     struct Request { world::ChunkCoord center; std::uint64_t revision; };
     struct Job { Request request; std::vector<world::ChunkSnapshot> snapshots; std::vector<world::ChunkCoord> targets; lighting::Sunlight sunlight; };

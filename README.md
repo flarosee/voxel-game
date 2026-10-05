@@ -2,6 +2,9 @@
 
 A small C++20 / Vulkan starting point for Windows and Linux.
 
+The fixed-width data, UTF-8, path, serialization, platform-boundary, dynamic Vulkan
+loading, and shutdown guarantees are recorded in [the cross-platform contract](docs/CROSS_PLATFORM.md).
+
 This milestone generates seeded terrain into sparse cubic chunks and builds sunlit
 greedy meshes, with perspective, depth testing, and a
 movable quaternion camera in a resizable 1280 x 720 window. The GPU appears in the
@@ -101,6 +104,10 @@ Volk loads Vulkan from the graphics driver at runtime, so a
 separate Vulkan SDK is **not required** for this milestone. The application uses
 Vulkan 1.0 features; the newer header version does not raise that runtime minimum.
 
+See [the reproducible build guide](docs/BUILDING.md) for IDE usage, explicit GCC and
+Clang presets, the dependency-free core build, offline dependency mirrors, and the
+shared compiler policy applied to every project target.
+
 ## Windows
 
 Install **Visual Studio 2022** with the **Desktop development with C++** workload,
@@ -181,6 +188,7 @@ Escape, and close-button behavior should also be checked on the target desktop.
 
 - `CMakeLists.txt`: targets and pinned dependencies.
 - `CMakePresets.json`: Windows and Linux build/test configurations.
+- `cmake/ProjectOptions.cmake`: shared C++ standard, warning, UTF-8, and conformance policy.
 - `src/main.cpp`: entry point and error reporting.
 - `src/Application.*`: window, Vulkan setup, event loop, and resource cleanup.
 - `src/Camera.hpp`: quaternion orientation, view transform, and movement.
@@ -191,6 +199,8 @@ Escape, and close-button behavior should also be checked on the target desktop.
 - `src/streaming/`: bounded generation/meshing handoffs, residency, and edit persistence.
 - `docs/STREAMING.md`: pipeline, memory budgets, publication, persistence, and limits.
 - `docs/CHUNKS.md`: memory layout, thread-safety contract, file format, and limitations.
+- `docs/CROSS_PLATFORM.md`: Windows/Linux data, text, path, Vulkan, and lifecycle invariants.
+- `docs/BUILDING.md`: IDE-neutral presets, toolchain lanes, offline builds, and troubleshooting.
 - `src/lighting/`: immutable skylight summaries and packed block-light fields.
 - `shaders/cube.vert` / `cube.frag`: sunlight, materials, and diagnostic views.
 - `tests/SunlightTests.cpp`: sky occlusion, merge boundaries, ray oracle, and concurrency.

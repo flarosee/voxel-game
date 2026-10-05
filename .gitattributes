@@ -1,0 +1,17 @@
+* text=auto
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.vert text eol=lf
+*.frag text eol=lf
+*.vxc binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.dds binary
+*.ktx binary
+*.ktx2 binary
+*.spv binary

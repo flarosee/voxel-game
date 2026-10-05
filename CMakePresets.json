@@ -3,28 +3,97 @@
   "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
   "configurePresets": [
     {
+      "name": "base",
+      "hidden": true,
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "VOXEL_BUILD_APP": "ON",
+        "VOXEL_WARNINGS_AS_ERRORS": "OFF"
+      }
+    },
+    {
       "name": "windows",
-      "displayName": "Windows (Visual Studio 2022, x64)",
+      "inherits": "base",
+      "displayName": "Windows - Visual Studio 2022 x64",
+      "description": "MSVC multi-config build for Visual Studio and command-line use",
       "generator": "Visual Studio 17 2022",
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build/windows",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
     },
     {
-      "name": "linux",
-      "displayName": "Linux (Ninja, Debug)",
+      "name": "linux-base",
+      "hidden": true,
+      "inherits": "base",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/linux",
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" },
+      "cacheVariables": { "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" },
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "linux",
+      "inherits": "linux-base",
+      "displayName": "Linux - default compiler - Debug",
+      "description": "Stable compatibility preset; uses the compiler selected by the environment",
+      "binaryDir": "${sourceDir}/build/linux",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "linux-gcc",
+      "inherits": "linux-base",
+      "displayName": "Linux - GCC - Debug",
+      "binaryDir": "${sourceDir}/build/linux-gcc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "linux-clang",
+      "inherits": "linux-base",
+      "displayName": "Linux - Clang - Debug",
+      "binaryDir": "${sourceDir}/build/linux-clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "linux-release",
+      "inherits": "linux-base",
+      "displayName": "Linux - default compiler - Release",
+      "binaryDir": "${sourceDir}/build/linux-release",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "core",
+      "inherits": "linux-base",
+      "displayName": "Portable core only - Debug",
+      "description": "No Vulkan, window system, shader compiler, or network dependency fetches",
+      "binaryDir": "${sourceDir}/build/core",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VOXEL_BUILD_APP": "OFF"
+      }
     }
   ],
   "buildPresets": [
     { "name": "windows", "configurePreset": "windows", "configuration": "Debug" },
-    { "name": "linux", "configurePreset": "linux" }
+    { "name": "windows-release", "configurePreset": "windows", "configuration": "Release" },
+    { "name": "linux", "configurePreset": "linux" },
+    { "name": "linux-gcc", "configurePreset": "linux-gcc" },
+    { "name": "linux-clang", "configurePreset": "linux-clang" },
+    { "name": "linux-release", "configurePreset": "linux-release" },
+    { "name": "core", "configurePreset": "core" }
   ],
   "testPresets": [
     { "name": "windows", "configurePreset": "windows", "configuration": "Debug", "output": { "outputOnFailure": true } },
-    { "name": "linux", "configurePreset": "linux", "output": { "outputOnFailure": true } }
+    { "name": "windows-release", "configurePreset": "windows", "configuration": "Release", "output": { "outputOnFailure": true } },
+    { "name": "linux", "configurePreset": "linux", "output": { "outputOnFailure": true } },
+    { "name": "linux-gcc", "configurePreset": "linux-gcc", "output": { "outputOnFailure": true } },
+    { "name": "linux-clang", "configurePreset": "linux-clang", "output": { "outputOnFailure": true } },
+    { "name": "linux-release", "configurePreset": "linux-release", "output": { "outputOnFailure": true } },
+    { "name": "core", "configurePreset": "core", "output": { "outputOnFailure": true } }
   ]
 }

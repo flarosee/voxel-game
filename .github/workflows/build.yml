@@ -14,27 +14,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake --preset windows
+        run: cmake --preset windows -DVOXEL_WARNINGS_AS_ERRORS=ON
       - name: Build
         run: cmake --build --preset windows --config ${{ matrix.configuration }} --parallel
-      - name: Camera, chunk, terrain, and meshing core tests
-        run: ctest --preset windows -C ${{ matrix.configuration }} -R "quaternion_camera|chunk_world|terrain_generation|greedy_meshing|chunk_streaming|sunlight|block_lighting|light_updates|transparent_blocks"
+      - name: Portable core and camera tests
+        run: ctest --preset windows -C ${{ matrix.configuration }} -R "portability_contract|quaternion_camera|chunk_world|terrain_generation|greedy_meshing|chunk_streaming|sunlight|block_lighting|light_updates|transparent_blocks"
 
   linux:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
+        compiler: [gcc, clang]
         configuration: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config python3 xorg-dev libwayland-dev libxkbcommon-dev libvulkan1 mesa-vulkan-drivers vulkan-tools xvfb xauth
+          sudo apt-get install -y gcc g++ clang ninja-build pkg-config python3 xorg-dev libwayland-dev libxkbcommon-dev libvulkan1 mesa-vulkan-drivers vulkan-tools xvfb xauth
       - name: Configure
-        run: cmake --preset linux -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+        run: cmake --preset linux-${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.configuration }} -DVOXEL_WARNINGS_AS_ERRORS=ON
       - name: Build
-        run: cmake --build --preset linux --parallel
+        run: cmake --build --preset linux-${{ matrix.compiler }} --parallel
       - name: Window and Vulkan smoke test
         shell: bash
         run: |
@@ -56,7 +57,7 @@ jobs:
           unset VK_ICD_FILENAMES WAYLAND_DISPLAY
           export XDG_SESSION_TYPE=x11
           # Diagnose the driver and test the game under the same Xvfb display.
-          xvfb-run -a bash -e -c 'vulkaninfo --summary; ctest --preset linux'
+          xvfb-run -a bash -e -c 'vulkaninfo --summary; ctest --preset linux-${{ matrix.compiler }}'
 
   core-sanitizers:
     runs-on: ubuntu-22.04
@@ -66,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure standalone core
-        run: cmake -S . -B build/core -DVOXEL_BUILD_APP=OFF -DCMAKE_BUILD_TYPE=Debug -DVOXEL_SANITIZER=${{ matrix.sanitizer }}
+        run: cmake -S . -B build/core -DVOXEL_BUILD_APP=OFF -DCMAKE_BUILD_TYPE=Debug -DVOXEL_SANITIZER=${{ matrix.sanitizer }} -DVOXEL_WARNINGS_AS_ERRORS=ON
       - name: Build
         run: cmake --build build/core --parallel
       - name: Check memory, undefined behavior, or data races

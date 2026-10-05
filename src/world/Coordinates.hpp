@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Portability.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -10,7 +11,7 @@ namespace voxel::world {
 
 using BlockId = std::uint16_t;
 inline constexpr BlockId Air = 0;
-inline constexpr int ChunkSide = 16;
+inline constexpr std::int32_t ChunkSide = 16;
 inline constexpr std::size_t ChunkVolume = ChunkSide * ChunkSide * ChunkSide;
 
 struct BlockCoord {
@@ -21,7 +22,7 @@ struct ChunkCoord {
     std::int64_t x = 0, y = 0, z = 0;
     bool operator==(const ChunkCoord&) const = default;
 };
-struct LocalCoord { int x = 0, y = 0, z = 0; };
+struct LocalCoord { std::int32_t x = 0, y = 0, z = 0; };
 struct BlockAddress { ChunkCoord chunk; LocalCoord local; };
 
 inline constexpr std::int64_t MinChunkCoord = std::numeric_limits<std::int64_t>::min() / ChunkSide;
@@ -41,7 +42,7 @@ inline BlockAddress addressOf(BlockCoord block) noexcept {
     };
     const auto local = [](std::int64_t value) {
         const auto remainder = value % ChunkSide;
-        return static_cast<int>(remainder < 0 ? remainder + ChunkSide : remainder);
+        return static_cast<std::int32_t>(remainder < 0 ? remainder + ChunkSide : remainder);
     };
     return {{divide(block.x), divide(block.y), divide(block.z)},
             {local(block.x), local(block.y), local(block.z)}};
@@ -55,8 +56,9 @@ inline std::size_t indexOf(LocalCoord local) {
 
 inline LocalCoord localOf(std::size_t index) {
     if (index >= ChunkVolume) throw std::out_of_range("Invalid block index");
-    return {static_cast<int>(index % ChunkSide), static_cast<int>((index / ChunkSide) % ChunkSide),
-            static_cast<int>(index / (ChunkSide * ChunkSide))};
+    return {static_cast<std::int32_t>(index % ChunkSide),
+            static_cast<std::int32_t>((index / ChunkSide) % ChunkSide),
+            static_cast<std::int32_t>(index / (ChunkSide * ChunkSide))};
 }
 
 inline BlockCoord blockAt(ChunkCoord chunk, LocalCoord local) {
