@@ -30,15 +30,33 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config python3 xorg-dev libwayland-dev libxkbcommon-dev libvulkan1 mesa-vulkan-drivers xvfb xauth
+          sudo apt-get install -y ninja-build pkg-config python3 xorg-dev libwayland-dev libxkbcommon-dev libvulkan1 mesa-vulkan-drivers vulkan-tools xvfb xauth
       - name: Configure
         run: cmake --preset linux -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
       - name: Build
         run: cmake --build --preset linux --parallel
       - name: Window and Vulkan smoke test
-        env:
-          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
-        run: xvfb-run -a ctest --preset linux
+        shell: bash
+        run: |
+          # Mesa updates removed the architecture suffix from ICD manifests.
+          lavapipe_icd=""
+          for candidate in /usr/share/vulkan/icd.d/lvp_icd.json /usr/share/vulkan/icd.d/lvp_icd.x86_64.json; do
+            if [[ -r "$candidate" ]]; then
+              lavapipe_icd="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$lavapipe_icd" ]]; then
+            echo "::error::Mesa Lavapipe Vulkan driver manifest is missing."
+            ls -la /usr/share/vulkan/icd.d/
+            exit 1
+          fi
+          echo "Using Vulkan driver: $lavapipe_icd"
+          export VK_DRIVER_FILES="$lavapipe_icd"
+          unset VK_ICD_FILENAMES WAYLAND_DISPLAY
+          export XDG_SESSION_TYPE=x11
+          # Diagnose the driver and test the game under the same Xvfb display.
+          xvfb-run -a bash -e -c 'vulkaninfo --summary; ctest --preset linux'
 
   core-sanitizers:
     runs-on: ubuntu-22.04
