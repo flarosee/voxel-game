@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../Types.hpp"
+
 #include "Coordinates.hpp"
 #include <array>
 #include <span>
@@ -35,7 +37,7 @@ private:
     BlockId uniform_ = Air;
     std::uint32_t occupied_ = 0;
     std::vector<BlockId> palette_;
-    std::vector<std::uint64_t> words_;
+    std::vector<UInt64> words_;
 };
 
 } // namespace voxel::world

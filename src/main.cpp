@@ -1,8 +1,9 @@
+#include "Types.hpp"
 #include "Application.hpp"
 #include "terrain/TerrainGenerator.hpp"
 
 #include <exception>
-#include <iostream>
+#include "Console.hpp"
 #include <string_view>
 #include <charconv>
 
@@ -11,7 +12,7 @@ int main(int argc, char** argv) {
     bool sunlightDemo = false;
     bool blockLightDemo = false;
     bool transparencyDemo = false;
-    std::uint64_t seed = voxel::terrain::TerrainGenerator::DefaultSeed;
+    voxel::UInt64 seed = voxel::terrain::TerrainGenerator::DefaultSeed;
     bool seedSeen = false;
     for (int i = 1; i < argc; ++i) {
         const std::string_view argument(argv[i]);
@@ -23,12 +24,12 @@ int main(int argc, char** argv) {
             const std::string_view value(argv[++i]);
             const auto [end, error] = std::from_chars(value.data(), value.data()+value.size(), seed);
             if (error != std::errc{} || end != value.data()+value.size()) {
-                std::cerr << "Seed must be an unsigned 64-bit decimal integer.\n";
+                voxel::console::error("Seed must be an unsigned 64-bit decimal integer.");
                 return 1;
             }
             seedSeen = true;
         } else {
-            std::cout << "Usage: voxel_game [--seed UINT64] [--smoke-test] [--sunlight-demo] [--block-light-demo] [--transparency-demo]\n";
+            voxel::console::info("Usage: voxel_game [--seed UINT64] [--smoke-test] [--sunlight-demo] [--block-light-demo] [--transparency-demo]");
             return argument == "--help" ? 0 : 1;
         }
     }
@@ -38,7 +39,7 @@ int main(int argc, char** argv) {
         app.run(smokeTest, seed, sunlightDemo, blockLightDemo, transparencyDemo);
         return 0;
     } catch (const std::exception& error) {
-        std::cerr << "VoxelGame: " << error.what() << '\n';
+        voxel::console::error("VoxelGame: ", error.what());
         return 1;
     }
 }

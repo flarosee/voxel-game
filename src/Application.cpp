@@ -1,3 +1,4 @@
+#include "Types.hpp"
 #include "Application.hpp"
 #include "Camera.hpp"
 #include "Renderer.hpp"
@@ -11,7 +12,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
+#include "Console.hpp"
 #include <optional>
 #include <set>
 #include <stdexcept>
@@ -126,7 +127,7 @@ Application::~Application() {
     }
 }
 
-void Application::run(bool smokeTest, std::uint64_t terrainSeed, bool sunlightDemo, bool blockLightDemo, bool transparencyDemo) {
+void Application::run(bool smokeTest, UInt64 terrainSeed, bool sunlightDemo, bool blockLightDemo, bool transparencyDemo) {
     initializeWindow();
     initializeVulkan();
     Renderer renderer;
@@ -152,10 +153,10 @@ void Application::run(bool smokeTest, std::uint64_t terrainSeed, bool sunlightDe
     const auto smokeEdit = world::blockAt(initialCenter,{1,1,0});
     const auto title = std::string("VoxelGame | Seed ") + std::to_string(terrainSeed) + " | 1 grass - 2 lamp - 3 water - 4 glass - 5 leaves | E place - Q remove - V views";
     glfwSetWindowTitle(window_,title.c_str());
-    std::cout << "Terrain seed: " << terrainSeed << " | Generation worker -> meshing worker -> budgeted main upload\n"
+    console::info("Terrain seed: ", terrainSeed, " | Generation worker -> meshing worker -> budgeted main upload\n"
                  "RMB: look | WASD: move | Space/Ctrl: up/down | Shift: fast | R: reset | Esc: exit\n"
                  "E: place | Q: remove | G: regenerate aimed chunk | F5: export | F9: import export\n"
-                 "1: grass | 2: lamp | 3: water | 4: glass | 5: leaves | V: materials / UV / normals / sunlight / block light.\n";
+                 "1: grass | 2: lamp | 3: water | 4: glass | 5: leaves | V: materials / UV / normals / sunlight / block light.");
     bool previousPlace=false, previousRemove=false, previousSave=false, previousLoad=false, previousRegenerate=false, previousView=false;
     std::uint32_t debugView=0;
     world::BlockId selectedBlock=blockLightDemo ? world::blocks::Lamp : 1;
@@ -203,7 +204,7 @@ void Application::run(bool smokeTest, std::uint64_t terrainSeed, bool sunlightDe
             if (hit && regenerate && !previousRegenerate) accepted=streamer.regenerate(world::addressOf(hit->block).chunk) && accepted;
             if (hit && save && !previousSave) accepted=streamer.exportChunk(world::addressOf(hit->block).chunk) && accepted;
             if (load && !previousLoad) accepted=streamer.importChunk() && accepted;
-            if (!accepted) std::cerr << "Streaming command queue full; action was not accepted.\n";
+            if (!accepted) console::error("Streaming command queue full; action was not accepted.");
             previousPlace=place; previousRemove=remove; previousSave=save; previousLoad=load;
             previousRegenerate=regenerate; previousView=changeView;
         } else previousPlace=previousRemove=previousSave=previousLoad=previousRegenerate=previousView=false;
@@ -258,11 +259,11 @@ void Application::run(bool smokeTest, std::uint64_t terrainSeed, bool sunlightDe
     }
     streamer.close();
     if (smokeTest && (smokeStage!=10 || stableFrames<10)) throw std::runtime_error("Streaming smoke test interrupted");
-    std::cout << "Presented " << renderedFrames << " frames; published scene " << renderer.meshGeneration() << ".\n";
+    console::info("Presented ", renderedFrames, " frames; published scene ", renderer.meshGeneration(), ".");
 }
 void Application::initializeWindow() {
     glfwSetErrorCallback([](int code, const char* description) {
-        std::cerr << "GLFW " << code << ": " << description << '\n';
+        console::error("GLFW ", code, ": ", description);
     });
     if (!glfwInit()) {
         throw std::runtime_error("Cannot initialize GLFW. Check your desktop/display session.");
@@ -370,7 +371,7 @@ void Application::createDevice() {
 
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(physicalDevice_, &properties);
-    std::cout << "Graphics device: " << properties.deviceName << '\n';
+    console::info("Graphics device: ", properties.deviceName);
     const std::string title = std::string("VoxelGame | Chunks | E place - Q remove - F5 save - F9 load | ") + properties.deviceName;
     glfwSetWindowTitle(window_, title.c_str());
 }

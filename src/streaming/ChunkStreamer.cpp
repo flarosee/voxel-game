@@ -1,3 +1,4 @@
+#include "../Types.hpp"
 #include "ChunkStreamer.hpp"
 #include "world/BlockTypes.hpp"
 #include "world/ChunkCodec.hpp"
@@ -64,7 +65,7 @@ void write(const std::filesystem::path& file, const ChunkSnapshot& snapshot) {
     std::filesystem::remove(backup);
 }
 }
-ChunkStreamer::ChunkStreamer(std::uint64_t seed, std::filesystem::path directory, int radius)
+ChunkStreamer::ChunkStreamer(UInt64 seed, std::filesystem::path directory, int radius)
     : generator_(seed), directory_(std::move(directory)/ ("v1-seed-"+std::to_string(seed))), radius_(radius) {
     if (radius<0 || radius>2) throw std::invalid_argument("Streaming radius must be within [0,2]");
     generationThread_=std::thread([this]{generateLoop();});
@@ -80,7 +81,7 @@ void ChunkStreamer::close() {
     std::lock_guard lock(mutex_);
     if (error_) std::rethrow_exception(error_);
 }
-std::uint64_t ChunkStreamer::request(world::ChunkCoord center) {
+UInt64 ChunkStreamer::request(world::ChunkCoord center) {
     world::validate(center);
     std::lock_guard lock(mutex_);
     if (error_) std::rethrow_exception(error_);
@@ -116,7 +117,7 @@ Stats ChunkStreamer::stats() const {
     result.meshPending=meshJob_!=nullptr; result.ready=ready_!=nullptr;
     return result;
 }
-bool ChunkStreamer::stale(std::uint64_t revision) const noexcept { return stopping_ || revision!=revision_; }
+bool ChunkStreamer::stale(UInt64 revision) const noexcept { return stopping_ || revision!=revision_; }
 void ChunkStreamer::fail() noexcept {
     { std::lock_guard lock(mutex_); if (!error_) error_=std::current_exception(); stopping_=true; }
     generationCV_.notify_all(); meshCV_.notify_all();
@@ -134,7 +135,7 @@ world::BlockStorage ChunkStreamer::load(world::ChunkCoord c) {
     return std::move(decoded.blocks);
 }
 std::optional<lighting::Sunlight> ChunkStreamer::buildSunlight(
-    std::span<const world::ChunkSnapshot> snapshots, std::uint64_t revision) {
+    std::span<const world::ChunkSnapshot> snapshots, UInt64 revision) {
     std::unordered_map<world::ChunkCoord,world::ChunkSnapshot,world::ChunkCoordHash> resident;
     for (const auto& snapshot:snapshots) resident.emplace(snapshot.coordinate,snapshot);
     // Constant-size disk cache; removing tall columns cannot grow an in-memory index.
@@ -205,7 +206,7 @@ void ChunkStreamer::apply(const Command& c) {
 void ChunkStreamer::generateLoop() noexcept {
     try {
         std::filesystem::create_directories(directory_);
-        std::uint64_t completed=0;
+        UInt64 completed=0;
         while (!stopping_) {
             Request request;
             std::deque<Command> commands;

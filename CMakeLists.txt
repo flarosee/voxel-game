@@ -4,6 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 project(VoxelGame VERSION 0.1.0 LANGUAGES C CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(SolutionLayout)
 include(ProjectOptions)
 voxel_validate_toolchain()
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
@@ -17,6 +18,7 @@ set(VOXEL_SANITIZER "none" CACHE STRING "Core checks: none, address, or thread (
 set_property(CACHE VOXEL_SANITIZER PROPERTY STRINGS none address thread)
 find_package(Threads REQUIRED)
 add_library(voxel_world
+    src/Types.hpp
     src/world/BlockStorage.cpp src/world/Chunk.cpp src/world/World.cpp
     src/world/ChunkCodec.cpp src/world/Raycast.cpp
     src/terrain/Noise.cpp src/terrain/TerrainGenerator.cpp src/terrain/TerrainWindow.cpp
@@ -141,7 +143,7 @@ foreach(STAGE vert frag)
     list(APPEND SHADER_HEADERS "${HEADER}")
 endforeach()
 
-add_executable(voxel_game src/main.cpp src/Application.cpp src/Application.hpp
+add_executable(voxel_game src/main.cpp src/Application.cpp src/Application.hpp src/Console.hpp src/Types.hpp
     src/Renderer.cpp src/Renderer.hpp src/Camera.hpp ${SHADER_HEADERS})
 target_include_directories(voxel_game PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 voxel_configure_target(voxel_game)

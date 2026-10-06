@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../Types.hpp"
+
 #include "Portability.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -70,14 +72,14 @@ inline BlockCoord blockAt(ChunkCoord chunk, LocalCoord local) {
 
 struct ChunkCoordHash {
     std::size_t operator()(ChunkCoord value) const noexcept {
-        const auto mix = [](std::uint64_t x) {
+        const auto mix = [](UInt64 x) {
             x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
             x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
             return x ^ (x >> 31);
         };
-        return static_cast<std::size_t>(mix(static_cast<std::uint64_t>(value.x)) ^
-            mix(static_cast<std::uint64_t>(value.y) + UINT64_C(0x9e3779b97f4a7c15)) ^
-            mix(static_cast<std::uint64_t>(value.z) + UINT64_C(0x3c6ef372fe94f82a)));
+        return static_cast<std::size_t>(mix(static_cast<UInt64>(value.x)) ^
+            mix(static_cast<UInt64>(value.y) + UINT64_C(0x9e3779b97f4a7c15)) ^
+            mix(static_cast<UInt64>(value.z) + UINT64_C(0x3c6ef372fe94f82a)));
     }
 };
 

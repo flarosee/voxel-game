@@ -1,9 +1,10 @@
+#include "../Types.hpp"
 #include "TerrainGenerator.hpp"
 #include <array>
 #include <utility>
 
 namespace voxel::terrain {
-TerrainGenerator::TerrainGenerator(std::uint64_t seed, std::shared_ptr<const Biome> grassland,
+TerrainGenerator::TerrainGenerator(UInt64 seed, std::shared_ptr<const Biome> grassland,
                                    std::shared_ptr<const Biome> desert)
     : seed_(seed), noise_(seed), grassland_(std::move(grassland)), desert_(std::move(desert)) {
     if (!grassland_ || !desert_) throw std::invalid_argument("Terrain biomes cannot be null");
@@ -25,7 +26,7 @@ Column TerrainGenerator::sampleColumn(std::int64_t x, std::int64_t z) const {
 world::BlockId TerrainGenerator::atHeight(const Column& column, std::int64_t y) noexcept {
     if (y > column.surfaceHeight) return world::Air;
     // Unsigned subtraction gives exact nonnegative distance, including MIN -> MAX.
-    const auto depth = static_cast<std::uint64_t>(column.surfaceHeight) - static_cast<std::uint64_t>(y);
+    const auto depth = static_cast<UInt64>(column.surfaceHeight) - static_cast<UInt64>(y);
     if (depth == 0) return column.surface;
     return depth < column.soilDepth ? column.subsurface : column.deep;
 }

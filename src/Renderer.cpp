@@ -1,3 +1,4 @@
+#include "Types.hpp"
 #include "Renderer.hpp"
 #include "Camera.hpp"
 
@@ -129,7 +130,7 @@ void Renderer::queueScene(std::shared_ptr<const streaming::Scene> scene) {
     incoming_ = std::move(scene);
     uploadedBytes_ = 0;
 }
-void Renderer::uploadStep(std::uint64_t wantedRevision) {
+void Renderer::uploadStep(UInt64 wantedRevision) {
     if (incoming_ && incoming_->revision != wantedRevision) incoming_.reset();
     if (!incoming_) return;
     const auto total = incoming_->vertices.size() * sizeof(Vertex);
@@ -433,7 +434,7 @@ void Renderer::createPipeline() {
     vkDestroyShaderModule(device_, vertex, nullptr);
 }
 
-bool Renderer::draw(const Camera& camera, std::uint64_t wantedRevision) {
+bool Renderer::draw(const Camera& camera, UInt64 wantedRevision) {
     int width = 0, height = 0;
     glfwGetFramebufferSize(window_, &width, &height);
     if (width == 0 || height == 0) return false;

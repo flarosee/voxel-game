@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Types.hpp"
+
 #include <volk.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -24,12 +26,12 @@ public:
     void initialize(GLFWwindow* window, VkPhysicalDevice physical, VkDevice device,
                     VkSurfaceKHR surface, VkQueue graphics, VkQueue present,
                     std::uint32_t graphicsFamily, std::uint32_t presentFamily);
-    bool draw(const Camera& camera, std::uint64_t wantedRevision);
+    bool draw(const Camera& camera, UInt64 wantedRevision);
     void queueScene(std::shared_ptr<const streaming::Scene> scene);
     bool uploading() const noexcept { return incoming_ != nullptr; }
 
     void setDebugView(std::uint32_t view) noexcept { debugView_ = view % 5; }
-    std::uint64_t meshGeneration() const noexcept { return meshGeneration_; }
+    UInt64 meshGeneration() const noexcept { return meshGeneration_; }
 
 private:
     struct Target {
@@ -41,7 +43,7 @@ private:
         VkSemaphore finished = VK_NULL_HANDLE;
     };
     void createMeshBuffers();
-    void uploadStep(std::uint64_t wantedRevision);
+    void uploadStep(UInt64 wantedRevision);
     void createSwapchain();
     void destroySwapchain();
     void createPipeline();
@@ -76,7 +78,7 @@ private:
     world::ChunkCoord meshOrigin_{};
     float fogDistance_ = 0;
     std::uint32_t vertexCount_ = 0, debugView_ = 0;
-    std::uint64_t meshGeneration_ = 0;
+    UInt64 meshGeneration_ = 0;
     VkCommandPool commandPool_ = VK_NULL_HANDLE;
     VkCommandBuffer command_ = VK_NULL_HANDLE;
     VkSemaphore acquired_ = VK_NULL_HANDLE;

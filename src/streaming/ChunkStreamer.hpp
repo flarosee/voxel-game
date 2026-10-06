@@ -1,4 +1,6 @@
 #pragma once
+
+#include "../Types.hpp"
 #include "mesh/GreedyMesher.hpp"
 #include "mesh/Transparency.hpp"
 #include "terrain/TerrainGenerator.hpp"
@@ -16,7 +18,7 @@ namespace voxel::streaming {
 // Fixed upload capacity, shared by CPU producer and GPU consumer.
 inline constexpr std::size_t MaxSceneVertices = 1024 * 1024;
 struct Scene {
-    std::uint64_t revision = 0;
+    UInt64 revision = 0;
     world::ChunkCoord origin;
     float fogDistance = 0;
     std::vector<mesh::Vertex> vertices; // Relative to origin, prepared on mesh thread.
@@ -25,18 +27,18 @@ struct Scene {
 };
 struct Stats {
     std::size_t resident = 0, commands = 0, generationPending = 0, meshPending = 0, ready = 0;
-    std::uint64_t generated = 0, meshed = 0, cancelled = 0;
+    UInt64 generated = 0, meshed = 0, cancelled = 0;
 };
 
 // Owns both workers and all mutable residency. Public methods never wait for jobs.
 // One controller per save directory. World access is read-only; edits go through commands.
 class ChunkStreamer final {
 public:
-    ChunkStreamer(std::uint64_t seed, std::filesystem::path directory, int radius = 2);
+    ChunkStreamer(UInt64 seed, std::filesystem::path directory, int radius = 2);
     ~ChunkStreamer();
     ChunkStreamer(const ChunkStreamer&) = delete;
     ChunkStreamer& operator=(const ChunkStreamer&) = delete;
-    std::uint64_t request(world::ChunkCoord center);
+    UInt64 request(world::ChunkCoord center);
     bool edit(world::BlockCoord block, world::BlockId expected, world::BlockId desired);
     bool regenerate(world::ChunkCoord chunk);
     bool exportChunk(world::ChunkCoord chunk);
@@ -44,23 +46,23 @@ public:
     std::shared_ptr<const Scene> takeReady();
     [[nodiscard]] const world::World& world() const noexcept { return world_; }
     [[nodiscard]] Stats stats() const;
-    [[nodiscard]] std::uint64_t revision() const noexcept { return revision_.load(); }
+    [[nodiscard]] UInt64 revision() const noexcept { return revision_.load(); }
     // Graceful shutdown flushes edits off the main thread, joins, then reports errors.
     void close();
 private:
     enum class Kind : std::uint8_t { Edit, Regenerate, Export, Import };
     struct Command { Kind kind; world::BlockCoord block{}; world::ChunkCoord chunk{}; world::BlockId expected=0, desired=0; };
-    struct Request { world::ChunkCoord center; std::uint64_t revision; };
+    struct Request { world::ChunkCoord center; UInt64 revision; };
     struct Job { Request request; std::vector<world::ChunkSnapshot> snapshots; std::vector<world::ChunkCoord> targets; lighting::Sunlight sunlight; };
     bool enqueue(Command command);
     void generateLoop() noexcept;
     void meshLoop() noexcept;
     void fail() noexcept;
-    bool stale(std::uint64_t revision) const noexcept;
+    bool stale(UInt64 revision) const noexcept;
     void apply(const Command& command);
     void save(const world::ChunkSnapshot& snapshot);
     world::BlockStorage load(world::ChunkCoord coordinate);
-    std::optional<lighting::Sunlight> buildSunlight(std::span<const world::ChunkSnapshot> snapshots, std::uint64_t revision);
+    std::optional<lighting::Sunlight> buildSunlight(std::span<const world::ChunkSnapshot> snapshots, UInt64 revision);
     std::filesystem::path path(world::ChunkCoord coordinate) const;
     const terrain::TerrainGenerator generator_;
     const std::filesystem::path directory_;
@@ -76,7 +78,7 @@ private:
     std::deque<Command> commands_;
     std::exception_ptr error_;
     Stats counts_;
-    std::atomic<std::uint64_t> revision_{0};
+    std::atomic<UInt64> revision_{0};
     std::atomic<bool> stopping_{false};
     std::thread generationThread_, meshThread_;
 };

@@ -125,6 +125,26 @@ Keep the terminal console open
 to see startup errors. A missing Vulkan runtime is usually resolved by installing
 the graphics driver, rather than installing development headers.
 
+## CLion on Windows
+
+Open the repository folder containing `CMakeLists.txt` in CLion.
+In Settings > Build, Execution, Deployment > Toolchains, add a Visual Studio
+toolchain named exactly `Visual Studio`, select your installed Visual Studio,
+and use the amd64/x64 architecture. This is a one-time local setup; CMake presets
+can select an existing IDE toolchain but cannot install or create it.
+
+Use **Load CMake Presets** (Ctrl+Shift+A), then enable the `clion-windows`
+profile under Settings > Build, Execution, Deployment > CMake. Disable the old
+MinGW Debug profile if it is enabled. Select `clion-windows` and the `voxel_game`
+run target to build or debug the game.
+
+The shared preset selects MSVC, Ninja, Debug, and `build/clion-debug`, keeping
+CLion builds separate from the generated Visual Studio solution. It requires
+the Visual Studio C++ tools, Windows SDK, Git, Python, and a Vulkan driver.
+From a Visual Studio developer terminal with Ninja on PATH, the same preset works
+with `cmake --preset clion-windows`, `cmake --build --preset clion-windows`,
+and `ctest --preset clion-windows`.
+
 ## Linux
 
 On Ubuntu 24.04 / Debian-based systems, install the build and window-system

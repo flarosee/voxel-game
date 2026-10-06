@@ -1,3 +1,4 @@
+#include "../Types.hpp"
 #include "BlockStorage.hpp"
 #include <algorithm>
 #include <utility>
@@ -26,7 +27,7 @@ void BlockStorage::write(std::size_t index, std::uint16_t value) noexcept {
     const auto bit = index * bits_;
     const auto shift = bit % 64;
     const auto mask = ((UINT64_C(1) << bits_) - 1) << shift;
-    words_[bit / 64] = (words_[bit / 64] & ~mask) | (static_cast<std::uint64_t>(value) << shift);
+    words_[bit / 64] = (words_[bit / 64] & ~mask) | (static_cast<UInt64>(value) << shift);
 }
 
 BlockId BlockStorage::at(std::size_t index) const {
@@ -37,10 +38,10 @@ BlockId BlockStorage::at(std::size_t index) const {
 }
 
 std::size_t BlockStorage::payloadBytes() const noexcept {
-    return palette_.size() * sizeof(BlockId) + words_.size() * sizeof(std::uint64_t);
+    return palette_.size() * sizeof(BlockId) + words_.size() * sizeof(UInt64);
 }
 std::size_t BlockStorage::allocatedBytes() const noexcept {
-    return palette_.capacity() * sizeof(BlockId) + words_.capacity() * sizeof(std::uint64_t);
+    return palette_.capacity() * sizeof(BlockId) + words_.capacity() * sizeof(UInt64);
 }
 void BlockStorage::swap(BlockStorage& other) noexcept {
     std::swap(bits_, other.bits_);

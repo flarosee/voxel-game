@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Types.hpp"
+
 #include <volk.h>
 #include <GLFW/glfw3.h>
 #include <cstdint>
@@ -14,7 +16,7 @@ public:
     Application(const Application&) = delete;
     Application& operator=(const Application&) = delete;
 
-    void run(bool smokeTest, std::uint64_t seed, bool sunlightDemo = false, bool blockLightDemo = false, bool transparencyDemo = false);
+    void run(bool smokeTest, UInt64 seed, bool sunlightDemo = false, bool blockLightDemo = false, bool transparencyDemo = false);
 
 private:
     void initializeWindow();

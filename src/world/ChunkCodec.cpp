@@ -1,3 +1,4 @@
+#include "../Types.hpp"
 #include "ChunkCodec.hpp"
 #include <array>
 #include <bit>
@@ -5,13 +6,13 @@
 
 namespace voxel::world {
 namespace {
-void append(std::vector<std::uint8_t>& bytes, std::uint64_t value, unsigned count) {
+void append(std::vector<std::uint8_t>& bytes, UInt64 value, unsigned count) {
     for (unsigned i = 0; i < count; ++i) bytes.push_back(static_cast<std::uint8_t>(value >> (i * 8)));
 }
-std::uint64_t read(std::span<const std::uint8_t> bytes, std::size_t& offset, unsigned count) {
+UInt64 read(std::span<const std::uint8_t> bytes, std::size_t& offset, unsigned count) {
     if (offset > bytes.size() || count > bytes.size() - offset) throw std::runtime_error("Truncated chunk");
-    std::uint64_t value = 0;
-    for (unsigned i = 0; i < count; ++i) value |= static_cast<std::uint64_t>(bytes[offset++]) << (i * 8);
+    UInt64 value = 0;
+    for (unsigned i = 0; i < count; ++i) value |= static_cast<UInt64>(bytes[offset++]) << (i * 8);
     return value;
 }
 std::uint32_t crc32(std::span<const std::uint8_t> bytes) noexcept {
@@ -31,7 +32,7 @@ std::vector<std::uint8_t> encodeChunk(const ChunkSnapshot& chunk) {
     append(bytes, 1, 2); // Version.
     append(bytes, ChunkSide, 2);
     for (auto value : {chunk.coordinate.x, chunk.coordinate.y, chunk.coordinate.z})
-        append(bytes, std::bit_cast<std::uint64_t>(value), 8);
+        append(bytes, std::bit_cast<UInt64>(value), 8);
     append(bytes, 0, 4); // Payload byte count, patched below.
     for (std::size_t index = 0; index < ChunkVolume;) {
         const auto id = chunk.blocks->at(index);
@@ -72,7 +73,7 @@ DecodedChunk decodeChunk(std::span<const std::uint8_t> bytes) {
         const auto length = read(bytes, offset, 2);
         if (length == 0 || length > ChunkVolume - written) throw std::runtime_error("Invalid chunk run length");
         if (written != 0 && id == previous) throw std::runtime_error("Noncanonical adjacent chunk runs");
-        for (std::uint64_t i = 0; i < length; ++i) blocks[written++] = id;
+        for (UInt64 i = 0; i < length; ++i) blocks[written++] = id;
         previous = id;
     }
     if (written != ChunkVolume) throw std::runtime_error("Incomplete chunk payload");

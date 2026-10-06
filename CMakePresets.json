@@ -22,6 +22,23 @@
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
     },
     {
+      "name": "clion-windows",
+      "inherits": "base",
+      "displayName": "CLion - Windows MSVC x64 - Debug",
+      "description": "Uses a CLion toolchain named Visual Studio and an independent Ninja build directory",
+      "generator": "Ninja",
+      "architecture": { "value": "x64", "strategy": "external" },
+      "binaryDir": "${sourceDir}/build/clion-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "vendor": { "jetbrains.com/clion": { "toolchain": "Visual Studio" } },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
       "name": "linux-base",
       "hidden": true,
       "inherits": "base",
@@ -79,6 +96,7 @@
     }
   ],
   "buildPresets": [
+    { "name": "clion-windows", "configurePreset": "clion-windows" },
     { "name": "windows", "configurePreset": "windows", "configuration": "Debug" },
     { "name": "windows-release", "configurePreset": "windows", "configuration": "Release" },
     { "name": "linux", "configurePreset": "linux" },
@@ -88,6 +106,7 @@
     { "name": "core", "configurePreset": "core" }
   ],
   "testPresets": [
+    { "name": "clion-windows", "configurePreset": "clion-windows", "output": { "outputOnFailure": true } },
     { "name": "windows", "configurePreset": "windows", "configuration": "Debug", "output": { "outputOnFailure": true } },
     { "name": "windows-release", "configurePreset": "windows", "configuration": "Release", "output": { "outputOnFailure": true } },
     { "name": "linux", "configurePreset": "linux", "output": { "outputOnFailure": true } },
