@@ -1,38 +1,10 @@
 #pragma once
-
-#include "Types.hpp"
-
-#include <volk.h>
-#include <GLFW/glfw3.h>
-#include <cstdint>
+#include "ApplicationOptions.hpp"
 
 namespace voxel {
-
-// Owns resources in creation order; cleanup reverses that order, including on failure.
+// Composition root: constructs systems in lifetime order and coordinates frames.
 class Application final {
-public:
-    Application() = default;
-    ~Application();
-    Application(const Application&) = delete;
-    Application& operator=(const Application&) = delete;
-
-    void run(bool smokeTest, UInt64 seed, bool sunlightDemo = false, bool blockLightDemo = false, bool transparencyDemo = false);
-
-private:
-    void initializeWindow();
-    void initializeVulkan();
-    void createDevice();
-
-    bool glfwInitialized_ = false;
-    GLFWwindow* window_ = nullptr;
-    VkInstance instance_ = VK_NULL_HANDLE;
-    VkSurfaceKHR surface_ = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
-    VkDevice device_ = VK_NULL_HANDLE;
-    VkQueue graphicsQueue_ = VK_NULL_HANDLE;
-    VkQueue presentQueue_ = VK_NULL_HANDLE;
-    std::uint32_t graphicsFamily_ = 0;
-    std::uint32_t presentFamily_ = 0;
+  public:
+    void run(const ApplicationOptions &options);
 };
-
 } // namespace voxel

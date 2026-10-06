@@ -66,6 +66,94 @@ std::string ConsolePanel::selectedText() const {
     return result;
 }
 
+void ConsolePanel::updateMouseSelection(const console::Message& message, const std::string& line, ImVec2 position, float rowHeight) {
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        selecting_ = true;
+        ImGui::SetWindowFocus();
+        if (!ImGui::GetIO().KeyShift) selectionStart_ = selectionEnd_ = {message.sequence, 0};
+    }
+    if (selecting_ && ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+        ImGui::GetIO().MousePos.y >= position.y && ImGui::GetIO().MousePos.y < position.y + rowHeight) {
+        const float x = ImGui::GetIO().MousePos.x - position.x;
+        std::size_t byte = 0;
+        float characterX = 0;
+        while (byte < line.size()) {
+            std::size_t next = byte + 1;
+            while (next < line.size() && (static_cast<unsigned char>(line[next]) & 0xc0) == 0x80) ++next;
+            const float characterWidth = ImGui::CalcTextSize(line.data() + byte, line.data() + next).x;
+            if (x < characterX + characterWidth * 0.5F) break;
+            characterX += characterWidth;
+            byte = next;
+        }
+        selectionEnd_ = {message.sequence, byte};
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::GetIO().KeyShift)
+            selectionStart_ = selectionEnd_;
+    }
+}
+
+void ConsolePanel::drawMessageRow(int index, float rowHeight, TextPosition start, TextPosition end) {
+    const auto& message = messages_[static_cast<std::size_t>(index)];
+    const auto& appearance = messageStyle(message.type);
+    const std::string line = displayLine(message);
+    const auto position = ImGui::GetCursorScreenPos();
+    const auto textWidth = [&](std::size_t byte) {
+        return ImGui::CalcTextSize(line.data(), line.data() + byte).x;
+    };
+    ImGui::PushID(index);
+    ImGui::InvisibleButton("Line", {std::max(ImGui::GetContentRegionAvail().x, textWidth(line.size()) + 1), ImGui::GetTextLineHeight()});
+    updateMouseSelection(message, line, position, rowHeight);
+    if (message.sequence >= start.sequence && message.sequence <= end.sequence && start != end) {
+        const auto begin = message.sequence == start.sequence ? std::min(start.byte, line.size()) : 0;
+        const auto finish = message.sequence == end.sequence ? std::min(end.byte, line.size()) : line.size();
+        ImGui::GetWindowDrawList()->AddRectFilled({position.x + textWidth(begin), position.y},
+            {position.x + textWidth(finish) + (message.sequence < end.sequence ? 4.0F : 0.0F), position.y + ImGui::GetTextLineHeight()},
+            ImGui::GetColorU32(ImGuiCol_TextSelectedBg));
+    }
+    ImGui::GetWindowDrawList()->AddText(position, ImGui::ColorConvertFloat4ToU32(appearance.color), line.c_str());
+    ImGui::PopID();
+}
+
+void ConsolePanel::copySelection() const {
+    const auto text = selectedText();
+    if (!text.empty()) {
+        ImGui::SetClipboardText(text.c_str());
+    }
+}
+
+void ConsolePanel::pasteIntoInput() {
+    const char* text = ImGui::GetClipboardText();
+    if (!text) return;
+    auto length = std::min(std::strlen(text), MaxInputBytes);
+    while (length > 0 && (static_cast<unsigned char>(text[length]) & 0xc0) == 0x80) --length;
+    std::memcpy(input_.data(), text, length);
+    input_[length] = '\0';
+    for (std::size_t i = 0; i < length; ++i) if (input_[i] == '\n' || input_[i] == '\r') input_[i] = ' ';
+    focusInput_ = true;
+}
+
+void ConsolePanel::handleOutputActions() {
+    if (ImGui::IsWindowFocused() && !ImGui::GetIO().WantTextInput && ImGui::GetIO().KeyCtrl) {
+        if (ImGui::IsKeyPressed(ImGuiKey_A)) selectAllMessages();
+        if (ImGui::IsKeyPressed(ImGuiKey_C)) copySelection();
+        if (ImGui::IsKeyPressed(ImGuiKey_V)) pasteIntoInput();
+    }
+    if (ImGui::BeginPopupContextWindow("MessageActions", ImGuiPopupFlags_MouseButtonRight)) {
+        if (ImGui::MenuItem("Copy", "Ctrl+C", false, !selectedText().empty())) copySelection();
+        if (ImGui::MenuItem("Select all", "Ctrl+A")) selectAllMessages();
+        if (ImGui::MenuItem("Paste into input", "Ctrl+V")) pasteIntoInput();
+        ImGui::EndPopup();
+    }
+}
+
+void ConsolePanel::updateSelectionScroll(float rowHeight) {
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) selecting_ = false;
+    if (selecting_) {
+        const auto mouseY = ImGui::GetIO().MousePos.y;
+        if (mouseY < ImGui::GetWindowPos().y + 15) ImGui::SetScrollY(ImGui::GetScrollY() - rowHeight);
+        if (mouseY > ImGui::GetWindowPos().y + ImGui::GetWindowSize().y - 15) ImGui::SetScrollY(ImGui::GetScrollY() + rowHeight);
+    }
+}
+
 void ConsolePanel::drawMessages(float height) {
     if (ImGui::BeginChild("Messages", {0, height}, ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar)) {
         const bool atBottom = ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0F;
@@ -76,76 +164,11 @@ void ConsolePanel::drawMessages(float height) {
         clipper.Begin(static_cast<int>(messages_.size()), rowHeight);
         while (clipper.Step()) {
             for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
-                const auto& message = messages_[static_cast<std::size_t>(index)];
-                const auto& appearance = messageStyle(message.type);
-                const std::string line = displayLine(message);
-                const auto position = ImGui::GetCursorScreenPos();
-                const auto textWidth = [&](std::size_t byte) {
-                    return ImGui::CalcTextSize(line.data(), line.data() + byte).x;
-                };
-                ImGui::PushID(index);
-                ImGui::InvisibleButton("Line", {std::max(ImGui::GetContentRegionAvail().x, textWidth(line.size()) + 1), ImGui::GetTextLineHeight()});
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    selecting_ = true;
-                    ImGui::SetWindowFocus();
-                    if (!ImGui::GetIO().KeyShift) selectionStart_ = selectionEnd_ = {message.sequence, 0};
-                }
-                if (selecting_ && ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
-                    ImGui::GetIO().MousePos.y >= position.y && ImGui::GetIO().MousePos.y < position.y + rowHeight) {
-                    const float x = ImGui::GetIO().MousePos.x - position.x;
-                    std::size_t byte = 0;
-                    float characterX = 0;
-                    while (byte < line.size()) {
-                        std::size_t next = byte + 1;
-                        while (next < line.size() && (static_cast<unsigned char>(line[next]) & 0xc0) == 0x80) ++next;
-                        const float characterWidth = ImGui::CalcTextSize(line.data() + byte, line.data() + next).x;
-                        if (x < characterX + characterWidth * 0.5F) break;
-                        characterX += characterWidth;
-                        byte = next;
-                    }
-                    selectionEnd_ = {message.sequence, byte};
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::GetIO().KeyShift)
-                        selectionStart_ = selectionEnd_;
-                }
-                if (message.sequence >= start.sequence && message.sequence <= end.sequence && start != end) {
-                    const auto begin = message.sequence == start.sequence ? std::min(start.byte, line.size()) : 0;
-                    const auto finish = message.sequence == end.sequence ? std::min(end.byte, line.size()) : line.size();
-                    ImGui::GetWindowDrawList()->AddRectFilled({position.x + textWidth(begin), position.y},
-                        {position.x + textWidth(finish) + (message.sequence < end.sequence ? 4.0F : 0.0F), position.y + ImGui::GetTextLineHeight()},
-                        ImGui::GetColorU32(ImGuiCol_TextSelectedBg));
-                }
-                ImGui::GetWindowDrawList()->AddText(position, ImGui::ColorConvertFloat4ToU32(appearance.color), line.c_str());
-                ImGui::PopID();
+                drawMessageRow(index, rowHeight, start, end);
             }
         }
-        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) selecting_ = false;
-        if (selecting_) {
-            const auto mouseY = ImGui::GetIO().MousePos.y;
-            if (mouseY < ImGui::GetWindowPos().y + 15) ImGui::SetScrollY(ImGui::GetScrollY() - rowHeight);
-            if (mouseY > ImGui::GetWindowPos().y + ImGui::GetWindowSize().y - 15) ImGui::SetScrollY(ImGui::GetScrollY() + rowHeight);
-        }
-        const auto copy = [&] { const auto text = selectedText(); if (!text.empty()) ImGui::SetClipboardText(text.c_str()); };
-        const auto paste = [&] {
-            const char* text = ImGui::GetClipboardText();
-            if (!text) return;
-            auto length = std::min(std::strlen(text), MaxInputBytes);
-            while (length > 0 && (static_cast<unsigned char>(text[length]) & 0xc0) == 0x80) --length;
-            std::memcpy(input_.data(), text, length);
-            input_[length] = '\0';
-            for (std::size_t i = 0; i < length; ++i) if (input_[i] == '\n' || input_[i] == '\r') input_[i] = ' ';
-            focusInput_ = true;
-        };
-        if (ImGui::IsWindowFocused() && !ImGui::GetIO().WantTextInput && ImGui::GetIO().KeyCtrl) {
-            if (ImGui::IsKeyPressed(ImGuiKey_A)) selectAllMessages();
-            if (ImGui::IsKeyPressed(ImGuiKey_C)) copy();
-            if (ImGui::IsKeyPressed(ImGuiKey_V)) paste();
-        }
-        if (ImGui::BeginPopupContextWindow("MessageActions", ImGuiPopupFlags_MouseButtonRight)) {
-            if (ImGui::MenuItem("Copy", "Ctrl+C", false, !selectedText().empty())) copy();
-            if (ImGui::MenuItem("Select all", "Ctrl+A")) selectAllMessages();
-            if (ImGui::MenuItem("Paste into input", "Ctrl+V")) paste();
-            ImGui::EndPopup();
-        }
+        updateSelectionScroll(rowHeight);
+        handleOutputActions();
         if (!selecting_ && (scrollToBottom_ || (newMessages_ && atBottom))) ImGui::SetScrollHereY(1.0F);
         scrollToBottom_ = false;
         newMessages_ = false;
@@ -171,6 +194,27 @@ void ConsolePanel::submit() {
     focusInput_ = true;
 }
 
+void ConsolePanel::drawInput() {
+    const auto& style = ImGui::GetStyle();
+    const float rowHeight = ImGui::GetFrameHeight();
+    const float buttonWidth = ImGui::CalcTextSize("Submit").x + style.FramePadding.x * 2.0F;
+    ImGui::SetNextItemWidth(std::max(1.0F, ImGui::GetContentRegionAvail().x - buttonWidth - style.ItemSpacing.x));
+    if (focusInput_) {
+        ImGui::SetKeyboardFocusHere();
+        focusInput_ = false;
+    }
+    const bool enter = ImGui::InputTextWithHint("##ConsoleInput", "Enter text...", input_.data(), input_.size(),
+        ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::SameLine();
+    const bool full = submissions_.size() >= MaxPendingSubmissions;
+    ImGui::BeginDisabled(full);
+    const bool clicked = ImGui::Button("Submit", {buttonWidth, rowHeight});
+    ImGui::EndDisabled();
+    if (full && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        ImGui::SetTooltip("Pending text queue is full; consume submitted text before adding more.");
+    if (enter || clicked) submit();
+}
+
 void ConsolePanel::draw() {
     collectMessages();
     if (!visible_) return;
@@ -184,22 +228,7 @@ void ConsolePanel::draw() {
         const auto& style = ImGui::GetStyle();
         const float rowHeight = ImGui::GetFrameHeight();
         drawMessages(std::max(1.0F, ImGui::GetContentRegionAvail().y - rowHeight - style.ItemSpacing.y));
-        const float buttonWidth = ImGui::CalcTextSize("Submit").x + style.FramePadding.x * 2.0F;
-        ImGui::SetNextItemWidth(std::max(1.0F, ImGui::GetContentRegionAvail().x - buttonWidth - style.ItemSpacing.x));
-        if (focusInput_) {
-            ImGui::SetKeyboardFocusHere();
-            focusInput_ = false;
-        }
-        const bool enter = ImGui::InputTextWithHint("##ConsoleInput", "Enter text...", input_.data(), input_.size(),
-            ImGuiInputTextFlags_EnterReturnsTrue);
-        ImGui::SameLine();
-        const bool full = submissions_.size() >= MaxPendingSubmissions;
-        ImGui::BeginDisabled(full);
-        const bool clicked = ImGui::Button("Submit", {buttonWidth, rowHeight});
-        ImGui::EndDisabled();
-        if (full && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-            ImGui::SetTooltip("Pending text queue is full; consume submitted text before adding more.");
-        if (enter || clicked) submit();
+        drawInput();
     }
     ImGui::End();
 }

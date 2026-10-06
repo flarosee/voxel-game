@@ -17,8 +17,8 @@ jobs:
         run: cmake --preset windows -DVOXEL_WARNINGS_AS_ERRORS=ON
       - name: Build
         run: cmake --build --preset windows --config ${{ matrix.configuration }} --parallel
-      - name: Portable core and camera tests
-        run: ctest --preset windows -C ${{ matrix.configuration }} -R "portability_contract|quaternion_camera|chunk_world|terrain_generation|greedy_meshing|chunk_streaming|sunlight|block_lighting|light_updates|transparent_blocks"
+      - name: Core, camera, and console tests
+        run: ctest --preset windows -C ${{ matrix.configuration }} -R "portability_contract|quaternion_camera|console_panel|chunk_world|terrain_generation|greedy_meshing|chunk_streaming|sunlight|block_lighting|light_updates|transparent_blocks"
 
   linux:
     runs-on: ubuntu-24.04

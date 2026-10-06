@@ -17,6 +17,10 @@ option(VOXEL_BUILD_APP "Build the Vulkan application (OFF builds only the standa
 set(VOXEL_SANITIZER "none" CACHE STRING "Core checks: none, address, or thread (GCC/Clang)")
 set_property(CACHE VOXEL_SANITIZER PROPERTY STRINGS none address thread)
 find_package(Threads REQUIRED)
+add_library(voxel_core STATIC src/Console.cpp src/Console.hpp src/Types.hpp)
+target_include_directories(voxel_core PUBLIC src)
+voxel_configure_target(voxel_core)
+target_link_libraries(voxel_core PUBLIC Threads::Threads)
 add_library(voxel_world
     src/Types.hpp
     src/world/BlockStorage.cpp src/world/Chunk.cpp src/world/World.cpp
@@ -168,20 +172,24 @@ foreach(STAGE vert frag)
 endforeach()
 
 add_executable(voxel_game src/main.cpp src/Application.cpp src/Application.hpp src/Console.hpp src/Types.hpp
+    src/ApplicationOptions.hpp src/platform/Runtime.cpp src/platform/Runtime.hpp
+    src/game/InputController.cpp src/game/InputController.hpp src/game/GameSession.cpp src/game/GameSession.hpp
+    src/game/SmokeTest.cpp src/game/SmokeTest.hpp
     src/Renderer.cpp src/Renderer.hpp src/Camera.hpp src/ui/Theme.cpp src/ui/Theme.hpp
     src/ui/Overlay.cpp src/ui/Overlay.hpp src/ui/ConsolePanel.cpp src/ui/ConsolePanel.hpp ${SHADER_HEADERS})
 target_include_directories(voxel_game PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 voxel_configure_target(voxel_game)
 target_compile_definitions(voxel_game PRIVATE GLFW_INCLUDE_NONE)
-target_link_libraries(voxel_game PRIVATE glfw volk::volk glm::glm voxel_world voxel_imgui)
+target_link_libraries(voxel_game PRIVATE glfw volk::volk glm::glm voxel_world voxel_imgui voxel_core)
 include(CTest)
 if(BUILD_TESTING)
     add_executable(camera_tests tests/CameraTests.cpp)
     add_executable(console_panel_tests tests/ConsolePanelTests.cpp src/ui/ConsolePanel.cpp src/ui/Theme.cpp)
     voxel_configure_target(console_panel_tests)
     target_include_directories(console_panel_tests PRIVATE src)
-    target_link_libraries(console_panel_tests PRIVATE voxel_imgui)
+    target_link_libraries(console_panel_tests PRIVATE voxel_imgui voxel_core)
     add_test(NAME console_panel COMMAND console_panel_tests)
+    set_tests_properties(console_panel PROPERTIES TIMEOUT 15)
     voxel_configure_target(camera_tests)
     target_include_directories(camera_tests PRIVATE src)
     target_link_libraries(camera_tests PRIVATE glm::glm)

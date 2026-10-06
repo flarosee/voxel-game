@@ -9,7 +9,7 @@ set_property(DIRECTORY "${PROJECT_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT voxel
 function(voxel_group_directory directory)
     get_property(targets DIRECTORY "${directory}" PROPERTY BUILDSYSTEM_TARGETS)
     foreach(target IN LISTS targets)
-        if(target STREQUAL "voxel_game" OR target STREQUAL "voxel_world")
+        if(target STREQUAL "voxel_game" OR target STREQUAL "voxel_world" OR target STREQUAL "voxel_core")
             set(folder "Game")
         elseif(target MATCHES "_tests$")
             set(folder "Tests")
@@ -26,6 +26,7 @@ endfunction()
 
 function(voxel_solution_layout)
     voxel_group_directory("${PROJECT_SOURCE_DIR}")
+    source_group("Logging" FILES src/Console.cpp src/Console.hpp)
     target_sources(voxel_world PRIVATE
         src/Portability.hpp src/Types.hpp
         src/world/BlockStorage.hpp src/world/BlockTypes.hpp src/world/Chunk.hpp
@@ -39,6 +40,11 @@ function(voxel_solution_layout)
     source_group("Shared" FILES src/Types.hpp src/Portability.hpp)
     if(TARGET voxel_game)
         source_group("Application" FILES src/main.cpp src/Application.cpp src/Application.hpp)
+        source_group("Application" FILES src/ApplicationOptions.hpp)
+        source_group("Platform" FILES src/platform/Runtime.cpp src/platform/Runtime.hpp)
+        source_group("Game" FILES src/game/InputController.cpp src/game/InputController.hpp
+            src/game/GameSession.cpp src/game/GameSession.hpp)
+        source_group("Diagnostics" FILES src/game/SmokeTest.cpp src/game/SmokeTest.hpp)
         source_group("Rendering" FILES src/Renderer.cpp src/Renderer.hpp)
         source_group("Camera" FILES src/Camera.hpp)
         source_group("UI" FILES src/ui/Theme.cpp src/ui/Theme.hpp src/ui/Overlay.cpp src/ui/Overlay.hpp

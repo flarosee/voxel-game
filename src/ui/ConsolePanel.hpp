@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <compare>
 #include <deque>
 #include <optional>
 #include <string>
@@ -39,12 +40,19 @@ private:
     void submit();
     void collectMessages();
     void drawMessages(float height);
+    void drawInput();
     [[nodiscard]] std::string displayLine(const console::Message& message) const;
     struct TextPosition {
         std::uint64_t sequence = 0;
         std::size_t byte = 0;
         auto operator<=>(const TextPosition&) const = default;
     };
+    void drawMessageRow(int index, float rowHeight, TextPosition start, TextPosition end);
+    void updateMouseSelection(const console::Message& message, const std::string& line, ImVec2 position, float rowHeight);
+    void updateSelectionScroll(float rowHeight);
+    void copySelection() const;
+    void pasteIntoInput();
+    void handleOutputActions();
     TextPosition selectionStart_, selectionEnd_;
     bool selecting_ = false;
     bool visible_ = false;

@@ -8,21 +8,17 @@
 #include <charconv>
 
 int main(int argc, char** argv) {
-    bool smokeTest = false;
-    bool sunlightDemo = false;
-    bool blockLightDemo = false;
-    bool transparencyDemo = false;
-    voxel::UInt64 seed = voxel::terrain::TerrainGenerator::DefaultSeed;
+    voxel::ApplicationOptions options;
     bool seedSeen = false;
     for (int i = 1; i < argc; ++i) {
         const std::string_view argument(argv[i]);
-        if (argument == "--smoke-test") smokeTest = true;
-        else if (argument == "--sunlight-demo") sunlightDemo = true;
-        else if (argument == "--block-light-demo") blockLightDemo = true;
-        else if (argument == "--transparency-demo") transparencyDemo = true;
+        if (argument == "--smoke-test") options.smokeTest = true;
+        else if (argument == "--sunlight-demo") options.sunlightDemo = true;
+        else if (argument == "--block-light-demo") options.blockLightDemo = true;
+        else if (argument == "--transparency-demo") options.transparencyDemo = true;
         else if (argument == "--seed" && !seedSeen && i + 1 < argc) {
             const std::string_view value(argv[++i]);
-            const auto [end, error] = std::from_chars(value.data(), value.data()+value.size(), seed);
+            const auto [end, error] = std::from_chars(value.data(), value.data()+value.size(), options.seed);
             if (error != std::errc{} || end != value.data()+value.size()) {
                 voxel::console::error("Seed must be an unsigned 64-bit decimal integer.");
                 return 1;
@@ -36,7 +32,7 @@ int main(int argc, char** argv) {
 
     try {
         voxel::Application app;
-        app.run(smokeTest, seed, sunlightDemo, blockLightDemo, transparencyDemo);
+        app.run(options);
         return 0;
     } catch (const std::exception& error) {
         voxel::console::error("VoxelGame: ", error.what());
