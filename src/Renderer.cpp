@@ -50,10 +50,11 @@ Renderer::~Renderer() {
     vkDestroyCommandPool(device_, commandPool_, nullptr);
 }
 
-void Renderer::initialize(GLFWwindow* window, VkPhysicalDevice physical, VkDevice device,
+void Renderer::initialize(GLFWwindow* window, VkInstance instance, VkPhysicalDevice physical, VkDevice device,
                           VkSurfaceKHR surface, VkQueue graphics, VkQueue present,
                           std::uint32_t graphicsFamily, std::uint32_t presentFamily) {
     window_ = window;
+    instance_ = instance;
     physical_ = physical;
     device_ = device;
     surface_ = surface;
@@ -91,6 +92,7 @@ void Renderer::initialize(GLFWwindow* window, VkPhysicalDevice physical, VkDevic
     fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     check(vkCreateFence(device_, &fence, nullptr, &frameFence_), "Create frame fence");
     createMeshBuffers();
+    overlay_.initialize(window_);
     // Swapchain creation is deferred to draw(), allowing startup while minimized.
 }
 
@@ -148,6 +150,7 @@ void Renderer::uploadStep(UInt64 wantedRevision) {
     activeScene_ = std::move(incoming_);
 }
 void Renderer::destroySwapchain() {
+    overlay_.shutdownVulkan();
     for (auto& target : targets_) {
         vkDestroyFramebuffer(device_, target.framebuffer, nullptr);
         vkDestroyImageView(device_, target.depthView, nullptr);
@@ -230,6 +233,7 @@ void Renderer::createSwapchain() {
     check(vkGetSwapchainImagesKHR(device_, swapchain_, &count, nullptr), "Count swapchain images");
     std::vector<VkImage> images(count);
     check(vkGetSwapchainImagesKHR(device_, swapchain_, &count, images.data()), "Read swapchain images");
+    if (images.size() < 2) throw std::runtime_error("UI requires at least two swapchain images");
 
     std::array<VkAttachmentDescription, 2> attachments{};
     attachments[0].format = colorFormat_;
@@ -271,6 +275,7 @@ void Renderer::createSwapchain() {
     pass.pDependencies = &dependency;
     check(vkCreateRenderPass(device_, &pass, nullptr, &renderPass_), "Create render pass");
     createPipeline();
+    overlay_.initializeVulkan(instance_, physical_, device_, graphicsFamily_, graphics_, renderPass_, count);
 
     targets_.resize(images.size());
     for (std::size_t i = 0; i < images.size(); ++i) {
@@ -489,6 +494,7 @@ bool Renderer::draw(const Camera& camera, UInt64 wantedRevision) {
         for (const auto range:activeScene_->transparency.backToFront({eye.x,eye.y,eye.z}))
             vkCmdDraw(command_, range.count, 1, range.first, 0);
     }
+    overlay_.render(command_);
     vkCmdEndRenderPass(command_);
     check(vkEndCommandBuffer(command_), "End commands");
     const VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -520,5 +526,4 @@ bool Renderer::draw(const Camera& camera, UInt64 wantedRevision) {
 }
 
 } // namespace voxel
-
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Types.hpp"
+#include "ui/Overlay.hpp"
 
 #include <volk.h>
 #include <GLFW/glfw3.h>
@@ -23,7 +24,7 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    void initialize(GLFWwindow* window, VkPhysicalDevice physical, VkDevice device,
+    void initialize(GLFWwindow* window, VkInstance instance, VkPhysicalDevice physical, VkDevice device,
                     VkSurfaceKHR surface, VkQueue graphics, VkQueue present,
                     std::uint32_t graphicsFamily, std::uint32_t presentFamily);
     bool draw(const Camera& camera, UInt64 wantedRevision);
@@ -32,6 +33,9 @@ public:
 
     void setDebugView(std::uint32_t view) noexcept { debugView_ = view % 5; }
     UInt64 meshGeneration() const noexcept { return meshGeneration_; }
+    void toggleConsole() noexcept { overlay_.console.toggle(); }
+    bool consoleVisible() const noexcept { return overlay_.console.visible(); }
+    [[nodiscard]] std::optional<std::string> takeConsoleSubmission() { return overlay_.console.takeSubmission(); }
 
 private:
     struct Target {
@@ -50,6 +54,8 @@ private:
     std::uint32_t memoryType(std::uint32_t bits, VkMemoryPropertyFlags flags) const;
 
     GLFWwindow* window_ = nullptr;
+    VkInstance instance_ = VK_NULL_HANDLE;
+    ui::Overlay overlay_;
     VkPhysicalDevice physical_ = VK_NULL_HANDLE;
     VkDevice device_ = VK_NULL_HANDLE;
     VkSurfaceKHR surface_ = VK_NULL_HANDLE;
@@ -86,4 +92,3 @@ private:
 };
 
 } // namespace voxel
-

@@ -131,7 +131,7 @@ void Application::run(bool smokeTest, UInt64 terrainSeed, bool sunlightDemo, boo
     initializeWindow();
     initializeVulkan();
     Renderer renderer;
-    renderer.initialize(window_, physicalDevice_, device_, surface_, graphicsQueue_,
+    renderer.initialize(window_, instance_, physicalDevice_, device_, surface_, graphicsQueue_,
                         presentQueue_, graphicsFamily_, presentFamily_);
     Camera camera;
     const terrain::TerrainGenerator generator(terrainSeed);
@@ -163,6 +163,8 @@ void Application::run(bool smokeTest, UInt64 terrainSeed, bool sunlightDemo, boo
     auto previous=std::chrono::steady_clock::now();
     const auto start=previous;
     bool looking=false;
+    if (smokeTest) renderer.toggleConsole(); // Exercise UI rendering and swapchain recreation.
+    bool previousConsoleKey=false;
     double previousX=0,previousY=0;
     unsigned renderedFrames=0, smokeStage=0, stableFrames=0;
     bool roofPlaced=false;
@@ -172,7 +174,11 @@ void Application::run(bool smokeTest, UInt64 terrainSeed, bool sunlightDemo, boo
         const float seconds=std::min(std::chrono::duration<float>(now-previous).count(),0.1F);
         previous=now;
         const bool focused=glfwGetWindowAttrib(window_,GLFW_FOCUSED)==GLFW_TRUE;
-        const bool wantsLook=focused && !smokeTest && glfwGetMouseButton(window_,GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS;
+        const bool consoleKey=glfwGetKey(window_,GLFW_KEY_GRAVE_ACCENT)==GLFW_PRESS;
+        if (focused && !smokeTest && consoleKey && !previousConsoleKey) renderer.toggleConsole();
+        previousConsoleKey=consoleKey;
+        const bool gameInput=focused && !smokeTest && !renderer.consoleVisible();
+        const bool wantsLook=gameInput && glfwGetMouseButton(window_,GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS;
         if (wantsLook!=looking) {
             looking=wantsLook;
             glfwSetInputMode(window_,GLFW_CURSOR,looking ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
@@ -184,7 +190,7 @@ void Application::run(bool smokeTest, UInt64 terrainSeed, bool sunlightDemo, boo
             camera.rotate(static_cast<float>(previousX-x)*0.0025F,static_cast<float>(previousY-y)*0.0025F);
             previousX=x; previousY=y;
         }
-        if (focused && !smokeTest) {
+        if (gameInput) {
             const auto key=[this](int code){return glfwGetKey(window_,code)==GLFW_PRESS ? 1.0F : 0.0F;};
             camera.move({key(GLFW_KEY_D)-key(GLFW_KEY_A),key(GLFW_KEY_SPACE)-key(GLFW_KEY_LEFT_CONTROL),
                          key(GLFW_KEY_W)-key(GLFW_KEY_S)},seconds,key(GLFW_KEY_LEFT_SHIFT)>0);
@@ -204,7 +210,7 @@ void Application::run(bool smokeTest, UInt64 terrainSeed, bool sunlightDemo, boo
             if (hit && regenerate && !previousRegenerate) accepted=streamer.regenerate(world::addressOf(hit->block).chunk) && accepted;
             if (hit && save && !previousSave) accepted=streamer.exportChunk(world::addressOf(hit->block).chunk) && accepted;
             if (load && !previousLoad) accepted=streamer.importChunk() && accepted;
-            if (!accepted) console::error("Streaming command queue full; action was not accepted.");
+            if (!accepted) console::warning("Streaming command queue full; action was not accepted.");
             previousPlace=place; previousRemove=remove; previousSave=save; previousLoad=load;
             previousRegenerate=regenerate; previousView=changeView;
         } else previousPlace=previousRemove=previousSave=previousLoad=previousRegenerate=previousView=false;
@@ -377,4 +383,3 @@ void Application::createDevice() {
 }
 
 } // namespace voxel
-

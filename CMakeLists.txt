@@ -112,6 +112,30 @@ FetchContent_Declare(volk
 FetchContent_MakeAvailable(glfw vulkan_headers volk)
 target_link_libraries(volk PUBLIC Vulkan::Headers)
 
+# Docking support is available for future developer panels; no UI is initialized yet.
+FetchContent_Declare(imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG af84778eeaab75bee0b54420f3157cf3ee00618f) # 1.92.5-docking
+FetchContent_MakeAvailable(imgui)
+add_library(voxel_imgui STATIC
+    "${imgui_SOURCE_DIR}/imgui.cpp"
+    "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+    "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+    "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+    "${imgui_SOURCE_DIR}/imgui.h"
+    "${imgui_SOURCE_DIR}/imconfig.h"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h")
+target_include_directories(voxel_imgui PUBLIC
+    "${imgui_SOURCE_DIR}" "${imgui_SOURCE_DIR}/backends")
+target_compile_features(voxel_imgui PRIVATE cxx_std_20)
+# Use the game's existing Vulkan loader rather than linking a Vulkan SDK loader.
+target_compile_definitions(voxel_imgui PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK)
+target_compile_definitions(voxel_imgui PRIVATE GLFW_INCLUDE_NONE)
+target_link_libraries(voxel_imgui PUBLIC glfw volk::volk)
+
 set(GLM_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLM_BUILD_LIBRARY OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(glm
@@ -144,14 +168,20 @@ foreach(STAGE vert frag)
 endforeach()
 
 add_executable(voxel_game src/main.cpp src/Application.cpp src/Application.hpp src/Console.hpp src/Types.hpp
-    src/Renderer.cpp src/Renderer.hpp src/Camera.hpp ${SHADER_HEADERS})
+    src/Renderer.cpp src/Renderer.hpp src/Camera.hpp src/ui/Theme.cpp src/ui/Theme.hpp
+    src/ui/Overlay.cpp src/ui/Overlay.hpp src/ui/ConsolePanel.cpp src/ui/ConsolePanel.hpp ${SHADER_HEADERS})
 target_include_directories(voxel_game PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 voxel_configure_target(voxel_game)
 target_compile_definitions(voxel_game PRIVATE GLFW_INCLUDE_NONE)
-target_link_libraries(voxel_game PRIVATE glfw volk::volk glm::glm voxel_world)
+target_link_libraries(voxel_game PRIVATE glfw volk::volk glm::glm voxel_world voxel_imgui)
 include(CTest)
 if(BUILD_TESTING)
     add_executable(camera_tests tests/CameraTests.cpp)
+    add_executable(console_panel_tests tests/ConsolePanelTests.cpp src/ui/ConsolePanel.cpp src/ui/Theme.cpp)
+    voxel_configure_target(console_panel_tests)
+    target_include_directories(console_panel_tests PRIVATE src)
+    target_link_libraries(console_panel_tests PRIVATE voxel_imgui)
+    add_test(NAME console_panel COMMAND console_panel_tests)
     voxel_configure_target(camera_tests)
     target_include_directories(camera_tests PRIVATE src)
     target_link_libraries(camera_tests PRIVATE glm::glm)
