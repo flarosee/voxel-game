@@ -139,6 +139,12 @@ target_compile_features(voxel_imgui PRIVATE cxx_std_20)
 target_compile_definitions(voxel_imgui PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK)
 target_compile_definitions(voxel_imgui PRIVATE GLFW_INCLUDE_NONE)
 target_link_libraries(voxel_imgui PUBLIC glfw volk::volk)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # ImGui's GLFW docking backend calls Xlib directly. GLFW dynamically loads
+    # X11 itself, so linking GLFW does not supply these symbols to consumers.
+    find_package(X11 REQUIRED)
+    target_link_libraries(voxel_imgui PUBLIC X11::X11)
+endif()
 
 set(GLM_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLM_BUILD_LIBRARY OFF CACHE BOOL "" FORCE)
